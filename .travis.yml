@@ -1,29 +1,42 @@
-matrix:
-  include:
-     - language: go
-       os: linux
-       script: GOOS=windows GOARCH=386 go build -o dnsleaktest.exe dnsleaktest.go
-       before_deploy:
-       deploy:
-         provider: releases
-         api_key: "${GITHUB_OAUTH_TOKEN}"
-         file: dnsleaktest.exe
-         skip_cleanup: true
-         on:
-           repo: macvk/dnsleaktest
-           tags: true           
+# .travis.yml
+language: go
 
-     - language: go
-       os: linux
-       script: go build -o dnsleaktest dnsleaktest.go
-       before_deploy:
-       deploy:
-         provider: releases
-         api_key: "${GITHUB_OAUTH_TOKEN}"
-         file: dnsleaktest
-         skip_cleanup: true
-         overwrite: true
-         on:
-           repo: macvk/dnsleaktest
-           tags: true
+addons:
+  apt:
+    packages:
+    # needed for the nfpm pipe:
+    - rpm
 
+
+env:
+# needed for the snap pipe:
+- PATH=/snap/bin:$PATH
+
+install:
+# needed for the snap pipe:
+- sudo apt install snapd
+- sudo snap install snapcraft --classic
+
+# needed for the docker pipe
+services:
+- docker
+
+after_success:
+# docker login is required if you want to push docker images.
+# DOCKER_PASSWORD should be a secret in your .travis.yml configuration.
+- test -n "$TRAVIS_TAG" && docker login -u=myuser -p="$DOCKER_PASSWORD"
+# snapcraft login is required if you want to push snapcraft packages to the
+# store.
+# You'll need to run `snapcraft export-login snap.login` and
+# `travis encrypt-file snap.login --add` to add the key to the travis
+# environment.
+- test -n "$TRAVIS_TAG" && snapcraft login --with snap.login
+
+# calls goreleaser
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: curl -sL https://git.io/goreleaser | bash
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux
