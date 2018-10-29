@@ -1,5 +1,6 @@
 package main
 
+//https://bash.ws/dnsleak
 import (
 	"encoding/json"
 	"fmt"
@@ -69,7 +70,7 @@ func main() {
 	testId := fakePing()
 	//test DNS leak
 	result := getResult(testId)
-	//show the testing result
+	//print test result
 	for _, Block := range result {
 		switch Block.Type {
 
